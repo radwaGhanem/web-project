@@ -1,0 +1,250 @@
+Task Manager API - Detailed Endpoint Documentation
+===============================================
+
+This document provides detailed information about each API endpoint in the Task Manager API, including HTTP methods, authorization requirements, input parameters, and output responses.
+
+Authentication
+-------------
+Most endpoints require JWT authentication via Bearer token in the Authorization header.
+- Format: "Bearer {token}"
+- Obtain token via POST /api/auth/login or POST /api/auth/signup
+- Token expires in 60 minutes
+
+Roles:
+- Admin: Full access to all endpoints
+- User: Limited access (can update task status)
+
+Error Responses
+---------------
+- 400 Bad Request: Invalid input data
+- 401 Unauthorized: Missing/invalid authentication
+- 403 Forbidden: Insufficient permissions
+- 404 Not Found: Resource not found
+- 409 Conflict: Resource already exists
+- 500 Internal Server Error: Server error
+
+===============================================================================
+
+AUTH ENDPOINTS
+==============
+
+1. POST /api/auth/login
+   Description: Authenticate user and receive JWT token
+   Authorization: None (AllowAnonymous)
+   Input: JSON body
+   {
+     "email": "string (required, valid email)",
+     "password": "string (required, min 6 chars)"
+   }
+   Output: 200 OK
+   {
+     "token": "string (JWT token)",
+     "expiresAt": "datetime",
+     "role": "string (Admin/User)",
+     "userId": "integer"
+   }
+   Error: 401 Unauthorized if invalid credentials
+
+2. POST /api/auth/signup
+   Description: Register new user account and receive JWT token
+   Authorization: None (AllowAnonymous)
+   Input: JSON body
+   {
+     "name": "string (required, max 100 chars)",
+     "email": "string (required, valid email, max 150 chars)",
+     "password": "string (required, min 6 chars)"
+   }
+   Output: 200 OK (same as login response)
+   {
+     "token": "string",
+     "expiresAt": "datetime",
+     "role": "string (always 'User')",
+     "userId": "integer"
+   }
+   Error: 409 Conflict if email already exists
+
+===============================================================================
+
+TASK ENDPOINTS
+==============
+
+3. GET /api/tasks
+   Description: Retrieve all tasks
+   Authorization: JWT token required
+   Input: None (query parameters optional for filtering)
+   Output: 200 OK
+   [
+     {
+       "id": "integer",
+       "title": "string",
+       "description": "string",
+       "dueDate": "datetime",
+       "isDone": "boolean",
+       "assignedUserId": "integer or null",
+       "assignedUserName": "string",
+       "tags": ["string array"]
+     }
+   ]
+
+4. GET /api/tasks/{id}
+   Description: Retrieve specific task by ID
+   Authorization: JWT token required
+   Input: URL parameter - id (integer)
+   Output: 200 OK (single task object as above)
+   Error: 404 Not Found if task doesn't exist
+
+5. POST /api/tasks
+   Description: Create new task
+   Authorization: JWT token required, Admin role
+   Input: JSON body
+   {
+     "title": "string (required, max 150 chars)",
+     "description": "string (max 1000 chars)",
+     "dueDate": "datetime (required)",
+     "assignedUserId": "integer or null",
+     "tagIds": ["integer array"]
+   }
+   Output: 201 Created (task object as above)
+   Location header: /api/tasks/{id}
+
+6. PUT /api/tasks/{id}
+   Description: Update existing task
+   Authorization: JWT token required, Admin role
+   Input: URL parameter - id (integer), JSON body
+   {
+     "title": "string (required, max 150 chars)",
+     "description": "string (max 1000 chars)",
+     "dueDate": "datetime (required)",
+     "isDone": "boolean",
+     "assignedUserId": "integer or null",
+     "tagIds": ["integer array"]
+   }
+   Output: 204 No Content
+   Error: 404 Not Found if task doesn't exist
+
+7. PATCH /api/tasks/{id}/status?isDone=true
+   Description: Update task completion status
+   Authorization: JWT token required, Admin or User role
+   Input: URL parameter - id (integer), query parameter - isDone (boolean)
+   Output: 204 No Content
+   Error: 404 Not Found if task doesn't exist
+
+8. DELETE /api/tasks/{id}
+   Description: Delete task
+   Authorization: JWT token required, Admin role
+   Input: URL parameter - id (integer)
+   Output: 204 No Content
+   Error: 404 Not Found if task doesn't exist
+
+===============================================================================
+
+TAG ENDPOINTS
+=============
+
+9. GET /api/tags
+   Description: Retrieve all tags
+   Authorization: JWT token required
+   Input: None
+   Output: 200 OK
+   [
+     {
+       "id": "integer",
+       "name": "string"
+     }
+   ]
+
+10. POST /api/tags
+    Description: Create new tag
+    Authorization: JWT token required, Admin role
+    Input: JSON body
+    {
+      "name": "string (required, max 50 chars)"
+    }
+    Output: 201 Created (tag object as above)
+    Location header: /api/tags
+
+===============================================================================
+
+USER ENDPOINTS
+==============
+
+11. GET /api/users
+    Description: Retrieve all users
+    Authorization: JWT token required, Admin role
+    Input: None
+    Output: 200 OK
+    [
+      {
+        "id": "integer",
+        "name": "string",
+        "email": "string",
+        "role": "string",
+        "bio": "string",
+        "phoneNumber": "string"
+      }
+    ]
+
+12. GET /api/users/{id}
+    Description: Retrieve specific user by ID
+    Authorization: JWT token required, Admin role
+    Input: URL parameter - id (integer)
+    Output: 200 OK (single user object as above)
+    Error: 404 Not Found if user doesn't exist
+
+13. GET /api/users/public/{id}
+    Description: Retrieve public user info by ID (limited fields)
+    Authorization: None (AllowAnonymous)
+    Input: URL parameter - id (integer)
+    Output: 200 OK (same user object, but for public access)
+    Error: 404 Not Found if user doesn't exist
+
+14. POST /api/users
+    Description: Create new user
+    Authorization: JWT token required, Admin role
+    Input: JSON body
+    {
+      "name": "string (required, max 100 chars)",
+      "email": "string (required, valid email, max 150 chars)",
+      "password": "string (required, min 6 chars)",
+      "role": "string (required, default 'User')"
+    }
+    Output: 201 Created (user object as above)
+    Location header: /api/users/{id}
+
+15. POST /api/users/admin
+    Description: Create new admin user (special endpoint)
+    Authorization: None (AllowAnonymous)
+    Input: JSON body (same as POST /api/users, but role is forced to 'Admin')
+    Output: 201 Created (user object as above)
+
+16. PUT /api/users/{id}
+    Description: Update existing user
+    Authorization: JWT token required, Admin role
+    Input: URL parameter - id (integer), JSON body
+    {
+      "name": "string (required, max 100 chars)",
+      "email": "string (required, valid email, max 150 chars)",
+      "role": "string (required)",
+      "bio": "string (max 250 chars)",
+      "phoneNumber": "string (max 20 chars)"
+    }
+    Output: 204 No Content
+    Error: 404 Not Found if user doesn't exist
+
+17. DELETE /api/users/{id}
+    Description: Delete user
+    Authorization: JWT token required, Admin role
+    Input: URL parameter - id (integer)
+    Output: 204 No Content
+    Error: 404 Not Found if user doesn't exist
+
+===============================================================================
+
+Additional Notes:
+- All endpoints use JSON for request/response bodies
+- DateTime fields are in ISO 8601 format
+- Validation errors return detailed ModelState information
+- CreatedAtAction responses include Location headers for newly created resources
+- All read operations use AsNoTracking() for performance
+- Database: LocalDB named 'task'</content>
+<parameter name="filePath">c:\Users\Asser\Desktop\radwaweb\radwa2\radwa2\API_Details.txt

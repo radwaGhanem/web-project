@@ -1,0 +1,77 @@
+Task Manager API Documentation
+
+Base URL:
+- https://localhost:5001 or http://localhost:5000
+
+Authentication:
+- POST /api/auth/login
+  - Description: Authenticate a user and receive a JWT token.
+  - Body: { "email": "user@task.local", "password": "User123!" }
+  - Response: { "token": "...", "expiresAt": "...", "role": "User", "userId": 2 }
+
+- POST /api/auth/signup
+  - Description: Register a new user with default role User.
+  - Body: { "name": "Test User", "email": "test@task.local", "password": "Test123!" }
+  - Response: JWT token for the new user.
+
+Debug:
+- GET /api/debug/db-connection
+  - Description: Check database connection. No auth required.
+  - Response: "Database connection is OK." or error.
+
+Public user lookup:
+- GET /api/users/public/{id}
+  - Description: Get a user by ID without authentication.
+  - Response: User details or 404.
+
+Admin user management:
+- GET /api/users
+  - Description: List all users. Admin only.
+- GET /api/users/{id}
+  - Description: Get a user by ID. Admin only.
+- POST /api/users
+  - Description: Create a new user (Admin can assign role Admin or User).
+  - Body: { "name": "User Name", "email": "email@task.local", "password": "Secret123!", "role": "User" }
+- POST /api/users/admin
+  - Description: Create a new admin user. Admin only.
+  - Body: { "name": "Admin Name", "email": "admin2@task.local", "password": "Admin123!" }
+- PUT /api/users/{id}
+  - Description: Update existing user details. Admin only.
+- DELETE /api/users/{id}
+  - Description: Delete a user. Admin only.
+
+Task management:
+- GET /api/tasks
+  - Description: List all tasks. Authenticated users.
+- GET /api/tasks/{id}
+  - Description: Get task details. Authenticated users.
+- POST /api/tasks
+  - Description: Create a task. Admin only.
+  - Body: { "title": "Task title", "description": "Task details", "dueDate": "2026-05-01T00:00:00", "assignedUserId": 2, "tagIds": [1,2] }
+- POST /api/tasks/{id}/assign
+  - Description: Assign a task to a user. Admin only.
+  - Body: { "assignedUserId": 2 }
+- PUT /api/tasks/{id}
+  - Description: Update task details. Admin only.
+- PATCH /api/tasks/{id}/status?isDone=true
+  - Description: Mark a task as done or not done. Admin and User roles can use this endpoint.
+- DELETE /api/tasks/{id}
+  - Description: Delete a task. Admin only.
+
+Tag management:
+- GET /api/tags
+  - Description: Get all tags. Authenticated users.
+- POST /api/tags
+  - Description: Create a new tag. Admin only.
+  - Body: { "name": "feature" }
+
+Default seeded accounts:
+- Admin: admin@task.local / Admin123!
+- User: user@task.local / User123!
+
+Swagger Authorization:
+1. Login via POST /api/auth/login.
+2. Copy the returned token.
+3. In Swagger UI, click Authorize.
+4. Paste: Bearer {token}
+5. Close the dialog and call protected endpoints.
